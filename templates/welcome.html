@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% set title = "Welcome • " ~ app_name %}
+
+{% block content %}
+  <div class="p-4 p-md-5 bg-white rounded-4 shadow-sm border">
+    <div class="row align-items-center g-4">
+      <div class="col-lg-7">
+        <h1 class="display-6 fw-semibold mb-2">Welcome to {{ app_name }}</h1>
+        <p class="text-muted mb-4">
+          Track, summarize, and review your Gender and Development (GAD) budget items in one place.
+          Use the dashboard for quick insights and the tables page for detailed records.
+        </p>
+        <div class="d-flex flex-wrap gap-2">
+          <a class="btn btn-primary btn-lg" href="{{ url_for('dashboard') }}">Go to Dashboard</a>
+          <a class="btn btn-outline-primary btn-lg" href="{{ url_for('tables') }}">Manage Tables</a>
+        </div>
+      </div>
+      <div class="col-lg-5">
+        <div class="card border-0 bg-light-subtle rounded-4">
+          <div class="card-body p-4">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <div class="badge text-bg-primary rounded-pill">Quick guide</div>
+            </div>
+            <ul class="list-unstyled mb-0">
+              <li class="mb-2">
+                <span class="fw-semibold">Dashboard:</span>
+                totals, utilization, and category breakdown.
+              </li>
+              <li class="mb-2">
+                <span class="fw-semibold">Tables:</span>
+                add, edit, delete, and filter budget entries.
+              </li>
+              <li class="mb-0">
+                <span class="fw-semibold">Data:</span>
+                stored locally in SQLite, with sample seed data on first run.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-3">
+    <div class="col-md-4">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body">
+          <div class="fw-semibold mb-1">Budget Transparency</div>
+          <div class="text-muted small">See allocations vs. obligations and disbursements at a glance.</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body">
+          <div class="fw-semibold mb-1">Monitoring & Reporting</div>
+          <div class="text-muted small">Keep records organized for audits, reviews, and reporting cycles.</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body">
+          <div class="fw-semibold mb-1">Simple Workflow</div>
+          <div class="text-muted small">Add items quickly, then refine details as implementation progresses.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

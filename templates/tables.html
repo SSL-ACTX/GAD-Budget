@@ -1,0 +1,491 @@
+{% extends "base.html" %}
+{% set title = "Tables • " ~ app_name %}
+
+{% macro money(v) -%}
+  {{ "{:,.2f}".format(v or 0) }}
+{%- endmacro %}
+
+{% macro status_badge(s) %}
+  {% if s == "Completed" %}
+    <span class="badge badge-completed">{{ s }}</span>
+  {% elif s == "Ongoing" %}
+    <span class="badge badge-ongoing">{{ s }}</span>
+  {% elif s == "Pending" %}
+    <span class="badge badge-pending">{{ s }}</span>
+  {% else %}
+    <span class="badge badge-default">{{ s }}</span>
+  {% endif %}
+{% endmacro %}
+
+{% block content %}
+
+<style>
+  /* ── Sheet Table Styles ── */
+  .sheet-wrapper {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+    overflow: hidden;
+  }
+
+  .sheet-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid #e8ecf0;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .sheet-title {
+    font-weight: 700;
+    font-size: 1rem;
+    color: #1a2235;
+  }
+
+  .sheet-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .sheet-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+    min-width: 1800px;
+  }
+
+  /* Header rows */
+  .sheet-table thead tr.th-group th {
+    background: #1f3864;
+    color: #ffffff;
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    padding: 9px 10px;
+    border: 1px solid #16335a;
+    white-space: nowrap;
+  }
+
+  .sheet-table thead tr.th-sub th {
+    background: #2e5096;
+    color: #dce8ff;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.7rem;
+    letter-spacing: 0.03em;
+    padding: 7px 8px;
+    border: 1px solid #1f3864;
+    white-space: nowrap;
+  }
+
+  /* Accent group headers */
+  .sheet-table thead tr.th-group th.grp-pow   { background: #c55a11; border-color: #a04a0e; }
+  .sheet-table thead tr.th-group th.grp-acct  { background: #375623; border-color: #2c451c; }
+  .sheet-table thead tr.th-group th.grp-oblig { background: #833c00; border-color: #6b3100; }
+  .sheet-table thead tr.th-group th.grp-fin   { background: #4472c4; border-color: #3561a8; }
+
+  .sheet-table thead tr.th-sub th.grp-pow   { background: #e07535; color: #fff; border-color: #c55a11; }
+  .sheet-table thead tr.th-sub th.grp-acct  { background: #538135; color: #fff; border-color: #375623; }
+  .sheet-table thead tr.th-sub th.grp-oblig { background: #c55a11; color: #fff; border-color: #833c00; }
+  .sheet-table thead tr.th-sub th.grp-fin   { background: #5b8fd4; color: #fff; border-color: #4472c4; }
+
+  /* Body cells */
+  .sheet-table tbody tr {
+    border-bottom: 1px solid #eef0f4;
+    transition: background 0.15s;
+  }
+  .sheet-table tbody tr:hover {
+    background: #f0f5ff;
+  }
+  .sheet-table tbody td {
+    padding: 7px 10px;
+    border-right: 1px solid #eef0f4;
+    color: #2d3748;
+    vertical-align: top;
+    max-width: 240px;
+  }
+  .sheet-table tbody td.td-no {
+    text-align: center;
+    font-weight: 700;
+    color: #4472c4;
+    min-width: 40px;
+  }
+  .sheet-table tbody td.td-num {
+    text-align: right;
+    font-family: 'Courier New', monospace;
+    white-space: nowrap;
+    color: #1a2235;
+  }
+  .sheet-table tbody td.td-center {
+    text-align: center;
+  }
+  .cell-wrap {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: block;
+  }
+  .cell-wrap:hover {
+    overflow: visible;
+    white-space: normal;
+    background: #fffbe6;
+    position: relative;
+    z-index: 10;
+    border-radius: 4px;
+    padding: 2px 4px;
+  }
+
+  /* Badges */
+  .badge {
+    font-size: 0.65rem;
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .badge-completed { background: #e6f4ea; color: #1e7e34; border: 1px solid #a8d5b5; }
+  .badge-ongoing   { background: #fff8e1; color: #b36b00; border: 1px solid #ffd54f; }
+  .badge-pending   { background: #fce4ec; color: #c62828; border: 1px solid #f48fb1; }
+  .badge-default   { background: #e8eaf6; color: #3949ab; border: 1px solid #c5cae9; }
+
+  /* Action buttons */
+  .btn-act {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn-edit   { background: #e8f0fe; color: #1a73e8; border: 1px solid #c5d8f9; }
+  .btn-edit:hover { background: #1a73e8; color: #fff; }
+  .btn-del    { background: #fce8e6; color: #d93025; border: 1px solid #f9bbb7; }
+  .btn-del:hover { background: #d93025; color: #fff; }
+
+  /* Filter card */
+  .filter-card {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.07);
+    padding: 14px 18px;
+    margin-bottom: 16px;
+  }
+
+  /* Add record modal */
+  .modal-header-custom {
+    background: linear-gradient(135deg, #1f3864, #2e5096);
+    color: #fff;
+    border-radius: 10px 10px 0 0;
+  }
+  .modal-section-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #5b8fd4;
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #e8ecf0;
+  }
+
+  /* Count pill */
+  .count-pill {
+    background: #e8f0fe;
+    color: #1a73e8;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 20px;
+  }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 50px 20px;
+    color: #9aa0b4;
+  }
+  .empty-state svg {
+    margin-bottom: 12px;
+    opacity: 0.4;
+  }
+
+  @media (max-width: 768px) {
+    .sheet-table { font-size: 0.7rem; }
+  }
+</style>
+
+<!-- Page Header -->
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+  <div>
+    <h2 class="h4 mb-0 fw-bold" style="color:#1a2235;">📋 Budget Monitoring Records</h2>
+    <div class="text-muted" style="font-size:.82rem;">GAD Budget Monitoring 2026 — Full Ledger View</div>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('dashboard') }}">← Dashboard</a>
+    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">+ Add Record</button>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="filter-card mb-3">
+  <form class="row g-2 align-items-end" method="get" action="{{ url_for('tables') }}">
+    <div class="col-12 col-md-3">
+      <label class="form-label small fw-semibold mb-1">Office</label>
+      <select class="form-select form-select-sm" name="office">
+        <option value="">All Offices</option>
+        {% for v in distinct["office"] %}
+          <option value="{{ v }}" {{ "selected" if filters["office"] == v else "" }}>{{ v }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-12 col-md-2">
+      <label class="form-label small fw-semibold mb-1">Status</label>
+      <select class="form-select form-select-sm" name="status">
+        <option value="">All Statuses</option>
+        {% for v in distinct["status"] %}
+          <option value="{{ v }}" {{ "selected" if filters["status"] == v else "" }}>{{ v }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-12 col-md-4">
+      <label class="form-label small fw-semibold mb-1">Search</label>
+      <input class="form-control form-control-sm" name="q" value="{{ filters['q'] }}" placeholder="Search particulars, payee, description…" />
+    </div>
+    <div class="col-12 col-md-3 d-flex gap-2">
+      <button class="btn btn-primary btn-sm flex-fill">Apply</button>
+      <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('tables') }}">Clear</a>
+    </div>
+  </form>
+</div>
+
+<!-- Table Sheet -->
+<div class="sheet-wrapper">
+  <div class="sheet-toolbar">
+    <span class="sheet-title">GAD Budget Monitoring — Ledger</span>
+    <span class="count-pill">{{ items|length }} record(s)</span>
+  </div>
+  <div class="sheet-scroll">
+    <table class="sheet-table">
+      <thead>
+        <!-- Row 1: Group headers -->
+        <tr class="th-group">
+          <th rowspan="2">NO.</th>
+          <th rowspan="2">DATE</th>
+          <th rowspan="2">OFFICE</th>
+          <th rowspan="2">STATUS</th>
+          <th rowspan="2">PARTICULARS</th>
+          <th colspan="3" class="grp-pow">PROGRAM OF WORKS</th>
+          <th rowspan="2">REFERENCE CODE</th>
+          <th rowspan="2">PPA ALLOTTED BUDGET</th>
+          <th rowspan="2">PROGRAM / PROJECT / ACTIVITY DESCRIPTION</th>
+          <th colspan="2" class="grp-acct">OBJECT OF EXPENDITURE</th>
+          <th rowspan="2" class="grp-oblig">PROPOSED BUDGET (EARMARKED)</th>
+          <th rowspan="2" class="grp-oblig">ACTUAL OBLIGATION</th>
+          <th rowspan="2">PAYEE</th>
+          <th rowspan="2">CAF</th>
+          <th rowspan="2">OBLIGATION NUMBER</th>
+          <th rowspan="2" class="grp-fin">VENUE / FOOD / HONORARIUM / MATERIALS</th>
+          <th rowspan="2" class="grp-fin">ACTUAL REMAINING BUDGET</th>
+          <th rowspan="2">REMARKS</th>
+          <th rowspan="2">ACTIONS</th>
+        </tr>
+        <!-- Row 2: Sub-headers -->
+        <tr class="th-sub">
+          <th class="grp-pow">TITLE</th>
+          <th class="grp-pow">DATE OF ACTIVITY</th>
+          <th class="grp-pow">PROPOSED BUDGET</th>
+          <th class="grp-acct">ACCOUNTS</th>
+          <th class="grp-acct">ACCOUNT CODE</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if items %}
+          {% for r in items %}
+          <tr>
+            <td class="td-no">{{ r["no"] or loop.index }}</td>
+            <td class="td-center" style="white-space:nowrap;">{{ r["date"] or "—" }}</td>
+            <td><span class="badge badge-default">{{ r["office"] }}</span></td>
+            <td class="td-center">{{ status_badge(r["status"]) }}</td>
+            <td><span class="cell-wrap" title="{{ r['particulars'] }}">{{ r["particulars"] or "—" }}</span></td>
+            <td><span class="cell-wrap" title="{{ r['pow_title'] }}">{{ r["pow_title"] or "—" }}</span></td>
+            <td class="td-center" style="white-space:nowrap;">{{ r["pow_date_of_activity"] or "—" }}</td>
+            <td class="td-num" style="font-size:0.7rem;">₱ {{ money(r["ppa_allotted_budget"]) }}</td>
+            <td style="font-size:0.68rem; white-space:nowrap;">{{ r["reference_code"] or "—" }}</td>
+            <td class="td-num">₱ {{ money(r["ppa_allotted_budget"]) }}</td>
+            <td><span class="cell-wrap" title="{{ r['ppa_description'] }}">{{ r["ppa_description"] or "—" }}</span></td>
+            <td><span class="cell-wrap" title="{{ r['accounts'] }}">{{ r["accounts"] or "—" }}</span></td>
+            <td class="td-center" style="font-size:0.68rem; white-space:nowrap;">{{ r["account_code"] or "—" }}</td>
+            <td class="td-num">₱ {{ money(r["proposed_budget"]) }}</td>
+            <td class="td-num" style="color:#833c00; font-weight:600;">₱ {{ money(r["actual_obligation"]) }}</td>
+            <td><span class="cell-wrap" title="{{ r['payee'] }}">{{ r["payee"] or "—" }}</span></td>
+            <td class="td-center">{{ r["caf"] or "—" }}</td>
+            <td class="td-center" style="font-size:0.7rem;">{{ r["obligation_number"] or "—" }}</td>
+            <td class="td-center"><span class="badge badge-default" style="background:#f0f4ff;">{{ r["venue_food_honorarium"] or "—" }}</span></td>
+            <td class="td-num" style="color:#1e7e34; font-weight:600;">₱ {{ money(r["actual_remaining_budget"]) }}</td>
+            <td style="font-size:0.7rem; color:#6b7280;"><span class="cell-wrap" title="{{ r['remarks'] }}">{{ r["remarks"] or "—" }}</span></td>
+            <td class="td-center" style="white-space:nowrap;">
+              <div class="d-inline-flex gap-1">
+                <a class="btn-act btn-edit" href="{{ url_for('edit_budget', item_id=r['id']) }}">✏ Edit</a>
+                <form method="post" action="{{ url_for('delete_budget', item_id=r['id']) }}" onsubmit="return confirm('Delete this record?');">
+                  <button class="btn-act btn-del" type="submit">🗑</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="22">
+              <div class="empty-state">
+                <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17v-2a4 4 0 018 0v2M9 7h6M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                <div class="fw-semibold">No matching records found.</div>
+                <div style="font-size:.8rem;">Try clearing the filters or adding a new record.</div>
+              </div>
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── Add Record Modal ── -->
+<div class="modal fade" id="addModal" tabindex="-1" aria-labelledby="addModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header modal-header-custom">
+        <h5 class="modal-title" id="addModalLabel">➕ Add New Budget Record</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="addForm" method="post" action="{{ url_for('add_budget') }}">
+          <!-- Basic Info -->
+          <div class="modal-section-label">📋 Basic Information</div>
+          <div class="row g-2 mb-3">
+            <div class="col-6 col-md-1">
+              <label class="form-label small">NO.</label>
+              <input class="form-control form-control-sm" name="no" placeholder="1">
+            </div>
+            <div class="col-6 col-md-2">
+              <label class="form-label small">DATE</label>
+              <input class="form-control form-control-sm" name="date" placeholder="1/7/2026">
+            </div>
+            <div class="col-12 col-md-2">
+              <label class="form-label small">OFFICE <span class="text-danger">*</span></label>
+              <input class="form-control form-control-sm" name="office" placeholder="MGADO" required>
+            </div>
+            <div class="col-6 col-md-2">
+              <label class="form-label small">STATUS</label>
+              <select class="form-select form-select-sm" name="status">
+                <option>Planned</option>
+                <option>Ongoing</option>
+                <option>Completed</option>
+                <option>Pending</option>
+              </select>
+            </div>
+            <div class="col-12 col-md-5">
+              <label class="form-label small">PARTICULARS</label>
+              <input class="form-control form-control-sm" name="particulars" placeholder="SALARY & INCENTIVES">
+            </div>
+          </div>
+
+          <!-- Program of Works -->
+          <div class="modal-section-label" style="color:#c55a11;">🗂 Program of Works</div>
+          <div class="row g-2 mb-3">
+            <div class="col-12 col-md-5">
+              <label class="form-label small">TITLE</label>
+              <input class="form-control form-control-sm" name="pow_title" placeholder="Program/Activity Title">
+            </div>
+            <div class="col-12 col-md-3">
+              <label class="form-label small">DATE OF ACTIVITY</label>
+              <input class="form-control form-control-sm" name="pow_date_of_activity" placeholder="January 23, 2026">
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label small">REFERENCE CODE</label>
+              <input class="form-control form-control-sm" name="reference_code" placeholder="1000-001-3-9-99-001-001-001-001">
+            </div>
+          </div>
+
+          <!-- PPA -->
+          <div class="modal-section-label" style="color:#375623;">📁 PPA & Account Details</div>
+          <div class="row g-2 mb-3">
+            <div class="col-12 col-md-3">
+              <label class="form-label small">PPA ALLOTTED BUDGET</label>
+              <input class="form-control form-control-sm" name="ppa_allotted_budget" placeholder="7769794.00" inputmode="decimal">
+            </div>
+            <div class="col-12 col-md-5">
+              <label class="form-label small">PPA DESCRIPTION</label>
+              <input class="form-control form-control-sm" name="ppa_description" placeholder="Provision of Permanent...">
+            </div>
+            <div class="col-12 col-md-3">
+              <label class="form-label small">ACCOUNTS (OBJECT OF EXPENDITURE)</label>
+              <input class="form-control form-control-sm" name="accounts" placeholder="PS-Salaries & Wages-Regular">
+            </div>
+            <div class="col-12 col-md-1">
+              <label class="form-label small">ACCOUNT CODE</label>
+              <input class="form-control form-control-sm" name="account_code" placeholder="5-01-01-010">
+            </div>
+          </div>
+
+          <!-- Obligations & Financials -->
+          <div class="modal-section-label" style="color:#833c00;">💰 Obligation & Financial Details</div>
+          <div class="row g-2 mb-3">
+            <div class="col-6 col-md-2">
+              <label class="form-label small">PROPOSED BUDGET (EARMARKED)</label>
+              <input class="form-control form-control-sm" name="proposed_budget" placeholder="0.00" inputmode="decimal">
+            </div>
+            <div class="col-6 col-md-2">
+              <label class="form-label small">ACTUAL OBLIGATION</label>
+              <input class="form-control form-control-sm" name="actual_obligation" placeholder="87592.00" inputmode="decimal">
+            </div>
+            <div class="col-12 col-md-3">
+              <label class="form-label small">PAYEE</label>
+              <input class="form-control form-control-sm" name="payee" placeholder="PHILIPPINE VETERANS BANK">
+            </div>
+            <div class="col-6 col-md-1">
+              <label class="form-label small">CAF</label>
+              <input class="form-control form-control-sm" name="caf" placeholder="—">
+            </div>
+            <div class="col-6 col-md-2">
+              <label class="form-label small">OBLIGATION NUMBER</label>
+              <input class="form-control form-control-sm" name="obligation_number" placeholder="101-26-01-015">
+            </div>
+            <div class="col-12 col-md-2">
+              <label class="form-label small">VENUE / FOOD / HONORARIUM / MATERIALS</label>
+              <input class="form-control form-control-sm" name="venue_food_honorarium" placeholder="SALARY">
+            </div>
+          </div>
+
+          <!-- Remaining & Remarks -->
+          <div class="modal-section-label" style="color:#4472c4;">📊 Summary & Remarks</div>
+          <div class="row g-2">
+            <div class="col-6 col-md-3">
+              <label class="form-label small">ACTUAL REMAINING BUDGET</label>
+              <input class="form-control form-control-sm" name="actual_remaining_budget" placeholder="6899501.24" inputmode="decimal">
+            </div>
+            <div class="col-12 col-md-9">
+              <label class="form-label small">REMARKS</label>
+              <input class="form-control form-control-sm" name="remarks" placeholder="FROM BUDGET (ELLA)">
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" form="addForm" class="btn btn-primary btn-sm">Save Record</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

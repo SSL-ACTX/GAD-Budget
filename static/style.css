@@ -1,0 +1,15 @@
+body {
+  --card-radius: 1rem;
+}
+
+.card {
+  border-radius: var(--card-radius);
+}
+
+.chart-wrap {
+  position: relative;
+}
+
+.navbar-brand {
+  letter-spacing: 0.2px;
+}

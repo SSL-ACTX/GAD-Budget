@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% set title = "Dashboard • " ~ app_name %}
+
+{% macro money(v) -%}
+  {{ "{:,.2f}".format(v or 0) }}
+{%- endmacro %}
+
+{% block content %}
+  <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-2 mb-3">
+    <div>
+      <h2 class="h3 mb-1">Dashboard</h2>
+      <div class="text-muted">Summary of GAD budget allocations, obligations, and disbursements.</div>
+    </div>
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-primary" href="{{ url_for('tables') }}">Open Tables</a>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-md-3">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="text-muted small">Total Items</div>
+          <div class="fs-3 fw-semibold">{{ totals["items"] }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="text-muted small">Allocated</div>
+          <div class="fs-4 fw-semibold">₱ {{ money(totals["allocated"]) }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="text-muted small">Obligated</div>
+          <div class="fs-4 fw-semibold">₱ {{ money(totals["obligated"]) }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="text-muted small">Disbursed</div>
+          <div class="fs-4 fw-semibold">₱ {{ money(totals["disbursed"]) }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-7">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="fw-semibold">Disbursed vs Allocated (by Category)</div>
+            <div class="text-muted small">Auto-updates from data</div>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="byCategoryChart" height="140"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="fw-semibold mb-2">Breakdown</div>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+              <thead>
+                <tr class="text-muted">
+                  <th>Category</th>
+                  <th class="text-end">Allocated</th>
+                  <th class="text-end">Disbursed</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% if rows %}
+                  {% for r in rows %}
+                    <tr>
+                      <td class="fw-semibold">{{ r["category"] }}</td>
+                      <td class="text-end">₱ {{ money(r["allocated"]) }}</td>
+                      <td class="text-end">₱ {{ money(r["disbursed"]) }}</td>
+                    </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr><td colspan="3" class="text-center text-muted py-4">No data yet.</td></tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card shadow-sm mt-3">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="fw-semibold">Recent Items</div>
+        <a class="small" href="{{ url_for('tables') }}">View all</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr class="text-muted">
+              <th>FY</th>
+              <th>Office</th>
+              <th>Program</th>
+              <th>Category</th>
+              <th class="text-end">Allocated</th>
+              <th class="text-end">Disbursed</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if recent %}
+              {% for r in recent %}
+                <tr>
+                  <td class="font-monospace">{{ r["fy"] }}</td>
+                  <td>{{ r["office"] }}</td>
+                  <td class="text-truncate" style="max-width: 280px">{{ r["program"] }}</td>
+                  <td>{{ r["category"] }}</td>
+                  <td class="text-end">₱ {{ money(r["amount_allocated"]) }}</td>
+                  <td class="text-end">₱ {{ money(r["amount_disbursed"]) }}</td>
+                  <td><span class="badge text-bg-light border">{{ r["status"] }}</span></td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr><td colspan="7" class="text-center text-muted py-4">No data yet.</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
+{% endblock %}

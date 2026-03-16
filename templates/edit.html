@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% set title = "Edit Record • " ~ app_name %}
+
+{% block content %}
+
+<style>
+  .edit-card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+    overflow: hidden;
+  }
+  .edit-header {
+    background: linear-gradient(135deg, #1f3864, #2e5096);
+    color: #fff;
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .edit-header h4 { margin: 0; font-weight: 700; font-size: 1rem; }
+  .edit-body { padding: 24px; }
+  .section-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding-bottom: 6px;
+    border-bottom: 2px solid;
+    margin-bottom: 12px;
+  }
+  .section-label.blue   { color: #1f3864; border-color: #2e5096; }
+  .section-label.orange { color: #c55a11; border-color: #e07535; }
+  .section-label.green  { color: #375623; border-color: #538135; }
+  .section-label.brown  { color: #833c00; border-color: #c55a11; }
+  .section-label.sky    { color: #4472c4; border-color: #5b8fd4; }
+</style>
+
+<div class="mb-3 d-flex align-items-center gap-2">
+  <a href="{{ url_for('tables') }}" class="btn btn-outline-secondary btn-sm">← Back to Tables</a>
+  <span class="text-muted small">Editing record #{{ item['id'] }}</span>
+</div>
+
+<div class="edit-card">
+  <div class="edit-header">
+    <span style="font-size:1.4rem;">✏️</span>
+    <h4>Edit Budget Record</h4>
+  </div>
+  <div class="edit-body">
+    <form method="post" action="{{ url_for('edit_budget_post', item_id=item['id']) }}">
+
+      <!-- Basic Info -->
+      <div class="section-label blue mb-2">📋 Basic Information</div>
+      <div class="row g-2 mb-4">
+        <div class="col-6 col-md-1">
+          <label class="form-label small">NO.</label>
+          <input class="form-control form-control-sm" name="no" value="{{ item['no'] or '' }}">
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label small">DATE</label>
+          <input class="form-control form-control-sm" name="date" value="{{ item['date'] or '' }}">
+        </div>
+        <div class="col-12 col-md-2">
+          <label class="form-label small">OFFICE <span class="text-danger">*</span></label>
+          <input class="form-control form-control-sm" name="office" value="{{ item['office'] }}" required>
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label small">STATUS</label>
+          <select class="form-select form-select-sm" name="status">
+            {% for s in ["Planned", "Ongoing", "Completed", "Pending"] %}
+              <option value="{{ s }}" {{ "selected" if item['status'] == s else "" }}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12 col-md-5">
+          <label class="form-label small">PARTICULARS</label>
+          <input class="form-control form-control-sm" name="particulars" value="{{ item['particulars'] or '' }}">
+        </div>
+      </div>
+
+      <!-- Program of Works -->
+      <div class="section-label orange mb-2">🗂 Program of Works</div>
+      <div class="row g-2 mb-4">
+        <div class="col-12 col-md-5">
+          <label class="form-label small">TITLE</label>
+          <input class="form-control form-control-sm" name="pow_title" value="{{ item['pow_title'] or '' }}">
+        </div>
+        <div class="col-12 col-md-3">
+          <label class="form-label small">DATE OF ACTIVITY</label>
+          <input class="form-control form-control-sm" name="pow_date_of_activity" value="{{ item['pow_date_of_activity'] or '' }}">
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label small">REFERENCE CODE</label>
+          <input class="form-control form-control-sm" name="reference_code" value="{{ item['reference_code'] or '' }}">
+        </div>
+      </div>
+
+      <!-- PPA & Account -->
+      <div class="section-label green mb-2">📁 PPA & Account Details</div>
+      <div class="row g-2 mb-4">
+        <div class="col-12 col-md-3">
+          <label class="form-label small">PPA ALLOTTED BUDGET</label>
+          <input class="form-control form-control-sm" name="ppa_allotted_budget" value="{{ item['ppa_allotted_budget'] or 0 }}" inputmode="decimal">
+        </div>
+        <div class="col-12 col-md-5">
+          <label class="form-label small">PPA DESCRIPTION</label>
+          <input class="form-control form-control-sm" name="ppa_description" value="{{ item['ppa_description'] or '' }}">
+        </div>
+        <div class="col-12 col-md-3">
+          <label class="form-label small">ACCOUNTS (OBJECT OF EXPENDITURE)</label>
+          <input class="form-control form-control-sm" name="accounts" value="{{ item['accounts'] or '' }}">
+        </div>
+        <div class="col-12 col-md-1">
+          <label class="form-label small">ACCOUNT CODE</label>
+          <input class="form-control form-control-sm" name="account_code" value="{{ item['account_code'] or '' }}">
+        </div>
+      </div>
+
+      <!-- Obligations -->
+      <div class="section-label brown mb-2">💰 Obligation & Financial Details</div>
+      <div class="row g-2 mb-4">
+        <div class="col-6 col-md-2">
+          <label class="form-label small">PROPOSED BUDGET (EARMARKED)</label>
+          <input class="form-control form-control-sm" name="proposed_budget" value="{{ item['proposed_budget'] or 0 }}" inputmode="decimal">
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label small">ACTUAL OBLIGATION</label>
+          <input class="form-control form-control-sm" name="actual_obligation" value="{{ item['actual_obligation'] or 0 }}" inputmode="decimal">
+        </div>
+        <div class="col-12 col-md-3">
+          <label class="form-label small">PAYEE</label>
+          <input class="form-control form-control-sm" name="payee" value="{{ item['payee'] or '' }}">
+        </div>
+        <div class="col-6 col-md-1">
+          <label class="form-label small">CAF</label>
+          <input class="form-control form-control-sm" name="caf" value="{{ item['caf'] or '' }}">
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label small">OBLIGATION NUMBER</label>
+          <input class="form-control form-control-sm" name="obligation_number" value="{{ item['obligation_number'] or '' }}">
+        </div>
+        <div class="col-12 col-md-2">
+          <label class="form-label small">VENUE / FOOD / HONORARIUM / MATERIALS</label>
+          <input class="form-control form-control-sm" name="venue_food_honorarium" value="{{ item['venue_food_honorarium'] or '' }}">
+        </div>
+      </div>
+
+      <!-- Summary -->
+      <div class="section-label sky mb-2">📊 Summary & Remarks</div>
+      <div class="row g-2 mb-4">
+        <div class="col-6 col-md-3">
+          <label class="form-label small">ACTUAL REMAINING BUDGET</label>
+          <input class="form-control form-control-sm" name="actual_remaining_budget" value="{{ item['actual_remaining_budget'] or 0 }}" inputmode="decimal">
+        </div>
+        <div class="col-12 col-md-9">
+          <label class="form-label small">REMARKS</label>
+          <input class="form-control form-control-sm" name="remarks" value="{{ item['remarks'] or '' }}">
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-end gap-2">
+        <a href="{{ url_for('tables') }}" class="btn btn-outline-secondary btn-sm">Cancel</a>
+        <button type="submit" class="btn btn-primary btn-sm">💾 Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
