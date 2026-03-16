@@ -38,7 +38,22 @@
             </li>
             <li class="nav-item">
               <a class="nav-link {{ 'active' if request.endpoint in ['tables', 'edit_budget'] else '' }}" href="{{ url_for('tables') }}"
-                >Tables</a
+                >Monitoring</a
+              >
+            </li>
+            <li class="nav-item">
+              <a class="nav-link {{ 'active' if request.endpoint == 'summary' else '' }}" href="{{ url_for('summary') }}"
+                >Summary</a
+              >
+            </li>
+            <li class="nav-item">
+              <a class="nav-link {{ 'active' if request.endpoint == 'expenditures' else '' }}" href="{{ url_for('expenditures') }}"
+                >Expenditures</a
+              >
+            </li>
+            <li class="nav-item">
+              <a class="nav-link {{ 'active' if request.endpoint == 'aip_programs' else '' }}" href="{{ url_for('aip_programs') }}"
+                >AIP Programs</a
               >
             </li>
           </ul>

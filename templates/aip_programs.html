@@ -1,0 +1,317 @@
+{% extends "base.html" %}
+{% set title = "AIP Programs • " ~ app_name %}
+
+{% macro money(v) -%}
+  {{ "{:,.2f}".format(v or 0) }}
+{%- endmacro %}
+
+{% macro pct(v) -%}
+  {{ "{:.2f}".format((v or 0) * 100) }}%
+{%- endmacro %}
+
+{% macro status_badge(s) %}
+  {% if s == "Under Utilized" %}
+    <span class="aip-badge aip-under">{{ s }}</span>
+  {% elif s == "Unspent Funds" %}
+    <span class="aip-badge aip-unspent">{{ s }}</span>
+  {% elif s == "Fully Utilized" %}
+    <span class="aip-badge aip-full">{{ s }}</span>
+  {% elif s %}
+    <span class="aip-badge aip-default">{{ s }}</span>
+  {% else %}
+    <span class="text-muted">—</span>
+  {% endif %}
+{% endmacro %}
+
+{% block content %}
+
+<style>
+  .aip-wrapper {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+    overflow: hidden;
+  }
+  .aip-hero {
+    background: linear-gradient(135deg, #833c00 0%, #c55a11 60%, #e07535 100%);
+    padding: 22px 28px;
+    color: #fff;
+  }
+  .aip-hero h2 {
+    font-weight: 800;
+    font-size: 1.2rem;
+    margin-bottom: 2px;
+  }
+  .aip-hero .sub {
+    font-size: 0.8rem;
+    opacity: 0.8;
+  }
+
+  .aip-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  .aip-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+    min-width: 1400px;
+  }
+
+  /* Header rows */
+  .aip-table thead tr.th-main th {
+    background: #833c00;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 10px 12px;
+    border: 1px solid #6b3100;
+    white-space: nowrap;
+    text-align: center;
+  }
+  .aip-table thead tr.th-main th.grp-budget {
+    background: #1f3864;
+    border-color: #16335a;
+  }
+  .aip-table thead tr.th-main th.grp-result {
+    background: #375623;
+    border-color: #2c451c;
+  }
+
+  /* Body */
+  .aip-table tbody tr {
+    border-bottom: 1px solid #f1f3f7;
+    transition: background 0.15s;
+  }
+  .aip-table tbody tr:hover {
+    background: #fef7f0;
+  }
+  .aip-table tbody td {
+    padding: 8px 12px;
+    color: #334155;
+    vertical-align: middle;
+    border-right: 1px solid #f1f3f7;
+  }
+
+  /* Header rows in body */
+  .aip-table tbody tr.row-header {
+    background: #fdf2e7;
+    border-left: 4px solid #c55a11;
+  }
+  .aip-table tbody tr.row-header td {
+    font-weight: 700;
+    color: #833c00;
+    font-size: 0.8rem;
+    padding: 10px 12px;
+  }
+  .aip-table tbody tr.row-section {
+    background: #f8f4ef;
+  }
+  .aip-table tbody tr.row-section td {
+    font-weight: 600;
+    color: #6b3100;
+    font-style: italic;
+    font-size: 0.76rem;
+  }
+
+  .aip-table .td-code {
+    font-family: 'Courier New', monospace;
+    font-size: 0.72rem;
+    color: #64748b;
+    white-space: nowrap;
+  }
+  .aip-table .td-num {
+    text-align: right;
+    font-family: 'Courier New', monospace;
+    font-weight: 500;
+    white-space: nowrap;
+    color: #1a2235;
+  }
+  .aip-table .td-center { text-align: center; }
+
+  .aip-table .td-desc {
+    max-width: 300px;
+  }
+  .cell-wrap-aip {
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: block;
+  }
+  .cell-wrap-aip:hover {
+    white-space: normal;
+    overflow: visible;
+    background: #fffbe6;
+    position: relative;
+    z-index: 10;
+    border-radius: 4px;
+    padding: 2px 4px;
+  }
+
+  .office-pill {
+    display: inline-block;
+    background: #e8f0fe;
+    color: #1a73e8;
+    font-weight: 700;
+    font-size: 0.7rem;
+    padding: 2px 10px;
+    border-radius: 16px;
+  }
+
+  /* Status badges */
+  .aip-badge {
+    display: inline-block;
+    font-size: 0.65rem;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .aip-under   { background: #fff8e1; color: #b36b00; border: 1px solid #ffd54f; }
+  .aip-unspent { background: #fce4ec; color: #c62828; border: 1px solid #f48fb1; }
+  .aip-full    { background: #e6f4ea; color: #1e7e34; border: 1px solid #a8d5b5; }
+  .aip-default { background: #e8eaf6; color: #3949ab; border: 1px solid #c5cae9; }
+
+  /* Progress */
+  .aip-progress {
+    height: 5px;
+    border-radius: 3px;
+    background: #e2e8f0;
+    overflow: hidden;
+    min-width: 50px;
+    margin-top: 3px;
+  }
+  .aip-progress .fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s ease;
+  }
+  .fill-orange { background: linear-gradient(90deg, #fbbf24, #f97316); }
+  .fill-green  { background: linear-gradient(90deg, #34d399, #22c55e); }
+  .fill-red    { background: linear-gradient(90deg, #f87171, #ef4444); }
+
+  .aip-info-bar {
+    display: flex;
+    gap: 12px;
+    padding: 14px 28px;
+    border-bottom: 1px solid #e8ecf0;
+    flex-wrap: wrap;
+  }
+  .aip-info-pill {
+    background: #fdf2e7;
+    color: #833c00;
+    font-weight: 700;
+    font-size: 0.75rem;
+    padding: 6px 14px;
+    border-radius: 20px;
+  }
+
+  @media (max-width: 768px) {
+    .aip-table { font-size: 0.7rem; }
+  }
+</style>
+
+<!-- Page Header -->
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+  <div>
+    <h2 class="h4 mb-0 fw-bold" style="color:#1a2235;">📑 AIP Programs (LBP4)</h2>
+    <div class="text-muted" style="font-size:.82rem;">Annual Investment Program — Obligated & Earnmarked Budget</div>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('dashboard') }}">← Dashboard</a>
+    <a class="btn btn-outline-primary btn-sm" href="{{ url_for('summary') }}">Summary</a>
+  </div>
+</div>
+
+<div class="aip-wrapper">
+  <div class="aip-hero">
+    <h2>📋 LBP4 — AIP Program Budget & Obligations</h2>
+    <div class="sub">Program/Project/Activity breakdown with PS, MOOE, and CO budgets</div>
+  </div>
+
+  <div class="aip-info-bar">
+    {% set data_rows = items|selectattr('is_header', 'equalto', 0)|list %}
+    <span class="aip-info-pill">{{ data_rows|length }} program(s)</span>
+    <span class="aip-info-pill">Total Budget: ₱ {{ money(data_rows|sum(attribute='total_budget')) }}</span>
+    <span class="aip-info-pill">Obligated: ₱ {{ money(data_rows|sum(attribute='obligated')) }}</span>
+    <span class="aip-info-pill">Balance: ₱ {{ money(data_rows|sum(attribute='balance')) }}</span>
+  </div>
+
+  <div class="aip-scroll">
+    <table class="aip-table">
+      <thead>
+        <tr class="th-main">
+          <th>AIP Ref. Code</th>
+          <th>Office</th>
+          <th>Program / Project / Activity</th>
+          <th class="grp-budget">PS</th>
+          <th class="grp-budget">MOOE</th>
+          <th class="grp-budget">CO</th>
+          <th class="grp-budget">Total</th>
+          <th class="grp-result">Earnmarked</th>
+          <th class="grp-result">Obligated</th>
+          <th class="grp-result">Expenses</th>
+          <th class="grp-result">Balance</th>
+          <th>Status</th>
+          <th>Utilization</th>
+          <th>Schedule</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if items %}
+          {% for r in items %}
+            {% if r["is_header"] %}
+              {% if r["ref_code"] %}
+                <tr class="row-section">
+                  <td class="td-code">{{ r["ref_code"] }}</td>
+                  <td colspan="13">{{ r["description"] }}</td>
+                </tr>
+              {% else %}
+                <tr class="row-header">
+                  <td colspan="14">{{ r["description"] }}</td>
+                </tr>
+              {% endif %}
+            {% else %}
+              <tr>
+                <td class="td-code">{{ r["ref_code"] or "—" }}</td>
+                <td class="td-center">
+                  {% if r["office"] %}
+                    <span class="office-pill">{{ r["office"] }}</span>
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+                <td class="td-desc"><span class="cell-wrap-aip" title="{{ r['description'] }}">{{ r["description"] }}</span></td>
+                <td class="td-num">{% if r["ps_budget"] %}₱ {{ money(r["ps_budget"]) }}{% else %}—{% endif %}</td>
+                <td class="td-num">{% if r["mooe_budget"] %}₱ {{ money(r["mooe_budget"]) }}{% else %}—{% endif %}</td>
+                <td class="td-num">{% if r["co_budget"] %}₱ {{ money(r["co_budget"]) }}{% else %}—{% endif %}</td>
+                <td class="td-num" style="font-weight:700; color:#1f3864;">₱ {{ money(r["total_budget"]) }}</td>
+                <td class="td-num">₱ {{ money(r["earnmarked"]) }}</td>
+                <td class="td-num" style="color:#833c00; font-weight:600;">₱ {{ money(r["obligated"]) }}</td>
+                <td class="td-num" style="color:#375623; font-weight:600;">₱ {{ money(r["expenses"]) }}</td>
+                <td class="td-num" style="color:#16a34a;">₱ {{ money(r["balance"]) }}</td>
+                <td class="td-center">{{ status_badge(r["status"]) }}</td>
+                <td class="td-center">
+                  <div>{{ pct(r["utilization_pct"]) }}</div>
+                  {% set pct_val = (r["utilization_pct"] or 0) * 100 %}
+                  <div class="aip-progress">
+                    <div class="fill {% if pct_val == 0 %}fill-red{% elif pct_val < 30 %}fill-orange{% else %}fill-green{% endif %}"
+                         style="width: {{ [pct_val, 100]|min }}%"></div>
+                  </div>
+                </td>
+                <td class="td-center" style="font-size:0.72rem; white-space:nowrap;">{{ r["quarterly_schedule"] or "—" }}</td>
+              </tr>
+            {% endif %}
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="14" class="text-center text-muted py-5">No AIP program records found.</td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

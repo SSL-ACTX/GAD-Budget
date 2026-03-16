@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+{% set title = "Summary • " ~ app_name %}
+
+{% macro money(v) -%}
+  {{ "{:,.2f}".format(v or 0) }}
+{%- endmacro %}
+
+{% macro pct(v) -%}
+  {{ "{:.2f}".format((v or 0) * 100) }}%
+{%- endmacro %}
+
+{% block content %}
+
+<style>
+  /* ── Summary Page Styles ── */
+  .summary-hero {
+    background: linear-gradient(135deg, #1f3864 0%, #2e5096 50%, #4472c4 100%);
+    border-radius: 16px;
+    padding: 28px 32px;
+    color: #fff;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 24px rgba(31,56,100,0.25);
+  }
+  .summary-hero h2 {
+    font-weight: 800;
+    font-size: 1.4rem;
+    margin-bottom: 4px;
+  }
+  .summary-hero .sub {
+    opacity: 0.75;
+    font-size: 0.85rem;
+  }
+  .grand-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-top: 20px;
+  }
+  .grand-card {
+    background: rgba(255,255,255,0.12);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 12px;
+    padding: 18px 20px;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .grand-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+  }
+  .grand-card .label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    opacity: 0.8;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .grand-card .value {
+    font-size: 1.25rem;
+    font-weight: 800;
+    font-family: 'Courier New', monospace;
+  }
+  .grand-card .value.pct {
+    color: #ffd54f;
+  }
+
+  /* PS / MOOE / CO breakdown bar */
+  .breakdown-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 20px;
+  }
+  .breakdown-item {
+    background: rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 14px 16px;
+    border: 1px solid rgba(255,255,255,0.12);
+  }
+  .breakdown-item .bk-label {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.7;
+    font-weight: 600;
+  }
+  .breakdown-item .bk-row {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-size: 0.82rem;
+  }
+  .breakdown-item .bk-row .expenses { font-weight: 700; }
+  .breakdown-item .bk-row .balance { opacity: 0.7; }
+
+  /* Office table */
+  .office-wrapper {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+    overflow: hidden;
+  }
+  .office-header {
+    padding: 18px 24px;
+    border-bottom: 1px solid #e8ecf0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .office-header h3 {
+    font-weight: 700;
+    font-size: 1rem;
+    color: #1a2235;
+    margin: 0;
+  }
+
+  .office-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+  }
+  .office-table thead th {
+    background: #f8fafc;
+    color: #64748b;
+    font-weight: 700;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 12px 16px;
+    border-bottom: 2px solid #e2e8f0;
+    white-space: nowrap;
+  }
+  .office-table tbody tr {
+    border-bottom: 1px solid #f1f5f9;
+    transition: background 0.15s;
+  }
+  .office-table tbody tr:hover {
+    background: #f0f5ff;
+  }
+  .office-table tbody td {
+    padding: 12px 16px;
+    color: #334155;
+  }
+  .office-table .td-num {
+    text-align: right;
+    font-family: 'Courier New', monospace;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .office-table .td-pct {
+    text-align: center;
+    font-weight: 700;
+  }
+  .office-badge {
+    display: inline-block;
+    background: #e8f0fe;
+    color: #1a73e8;
+    font-weight: 700;
+    font-size: 0.75rem;
+    padding: 3px 12px;
+    border-radius: 20px;
+    letter-spacing: 0.03em;
+  }
+  .progress-bar-custom {
+    height: 6px;
+    border-radius: 3px;
+    background: #e2e8f0;
+    overflow: hidden;
+    min-width: 60px;
+    margin-top: 4px;
+  }
+  .progress-bar-custom .fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s ease;
+  }
+  .fill-low  { background: linear-gradient(90deg, #f87171, #fbbf24); }
+  .fill-mid  { background: linear-gradient(90deg, #fbbf24, #34d399); }
+  .fill-high { background: linear-gradient(90deg, #34d399, #22c55e); }
+
+  @media (max-width: 768px) {
+    .grand-cards { grid-template-columns: repeat(2, 1fr); }
+    .breakdown-row { grid-template-columns: 1fr; }
+  }
+</style>
+
+<!-- Hero Section -->
+<div class="summary-hero">
+  <h2>📊 Budget Summary 2026</h2>
+  <div class="sub">GAD Budget Monitoring — Grand Totals & Office Utilization</div>
+
+  <div class="grand-cards">
+    <div class="grand-card">
+      <div class="label">Total GAD Budget Threshold</div>
+      <div class="value">₱ {{ money(grand["total_gad_threshold"]) }}</div>
+    </div>
+    <div class="grand-card">
+      <div class="label">Total Obligated</div>
+      <div class="value">₱ {{ money(grand["total_obligated"]) }}</div>
+    </div>
+    <div class="grand-card">
+      <div class="label">Total Earnmarked (Reserved)</div>
+      <div class="value">₱ {{ money(grand["total_earnmarked"]) }}</div>
+    </div>
+    <div class="grand-card">
+      <div class="label">Total Expenses</div>
+      <div class="value">₱ {{ money(grand["total_expenses"]) }}</div>
+    </div>
+    <div class="grand-card">
+      <div class="label">Utilization Rate</div>
+      <div class="value pct">{{ pct(grand["utilization_pct"]) }}</div>
+    </div>
+  </div>
+
+  <div class="breakdown-row">
+    <div class="breakdown-item">
+      <div class="bk-label">Personal Services (PS)</div>
+      <div class="bk-row">
+        <span class="expenses">Expenses: ₱ {{ money(grand["ps_expenses"]) }}</span>
+        <span class="balance">Balance: ₱ {{ money(grand["ps_balance"]) }}</span>
+      </div>
+    </div>
+    <div class="breakdown-item">
+      <div class="bk-label">MOOE</div>
+      <div class="bk-row">
+        <span class="expenses">Expenses: ₱ {{ money(grand["mooe_expenses"]) }}</span>
+        <span class="balance">Balance: ₱ {{ money(grand["mooe_balance"]) }}</span>
+      </div>
+    </div>
+    <div class="breakdown-item">
+      <div class="bk-label">Capital Outlay (CO)</div>
+      <div class="bk-row">
+        <span class="expenses">Expenses: ₱ {{ money(grand["co_expenses"]) }}</span>
+        <span class="balance">Balance: ₱ {{ money(grand["co_balance"]) }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Office Table -->
+<div class="office-wrapper">
+  <div class="office-header">
+    <h3>🏛 Office Budget Utilization</h3>
+    <span style="font-size:0.78rem; color:#94a3b8;">{{ offices|length }} anchored offices</span>
+  </div>
+  <div class="table-responsive">
+    <table class="office-table">
+      <thead>
+        <tr>
+          <th>Office</th>
+          <th class="text-end">Budget Threshold</th>
+          <th class="text-end">Obligated</th>
+          <th class="text-end">Earnmarked</th>
+          <th class="text-end">Total Expenses</th>
+          <th class="text-end">Balance</th>
+          <th class="text-center">Utilization</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in offices %}
+        <tr>
+          <td><span class="office-badge">{{ o["office"] }}</span></td>
+          <td class="td-num">₱ {{ money(o["budget_threshold"]) }}</td>
+          <td class="td-num">₱ {{ money(o["obligated"]) }}</td>
+          <td class="td-num">₱ {{ money(o["earnmarked"]) }}</td>
+          <td class="td-num" style="font-weight:700; color:#1f3864;">₱ {{ money(o["expenses"]) }}</td>
+          <td class="td-num" style="color:#16a34a;">₱ {{ money(o["balance"]) }}</td>
+          <td class="td-pct">
+            <div>{{ pct(o["utilization_pct"]) }}</div>
+            <div class="progress-bar-custom">
+              {% set pct_val = (o["utilization_pct"] or 0) * 100 %}
+              <div class="fill {% if pct_val < 20 %}fill-low{% elif pct_val < 50 %}fill-mid{% else %}fill-high{% endif %}"
+                   style="width: {{ [pct_val, 100]|min }}%"></div>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

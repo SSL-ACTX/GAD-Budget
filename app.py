@@ -31,12 +31,16 @@ def create_app() -> Flask:
         totals = data["totals"]
         recent = data["recent"]
 
+        # Get summary data for the dashboard cards
+        summary = s.get_summary()
+
         return render_template(
             "dashboard.html",
             app_name=APP_NAME,
             rows=rows,
             totals=totals,
             recent=recent,
+            summary=summary,
         )
 
     @app.get("/tables")
@@ -104,6 +108,46 @@ def create_app() -> Flask:
         s.delete_item(item_id)
         flash("Record deleted.", "success")
         return redirect(url_for("tables"))
+
+    # ──────────────────────────────────
+    # NEW: Summary page
+    # ──────────────────────────────────
+    @app.get("/summary")
+    def summary():
+        s = get_store(app)
+        data = s.get_summary()
+        return render_template(
+            "summary.html",
+            app_name=APP_NAME,
+            grand=data["grand"],
+            offices=data["offices"],
+        )
+
+    # ──────────────────────────────────
+    # NEW: Expenditures page (LBP2)
+    # ──────────────────────────────────
+    @app.get("/expenditures")
+    def expenditures():
+        s = get_store(app)
+        items = s.list_expenditures()
+        return render_template(
+            "expenditures.html",
+            app_name=APP_NAME,
+            items=items,
+        )
+
+    # ──────────────────────────────────
+    # NEW: AIP Programs page (LBP4)
+    # ──────────────────────────────────
+    @app.get("/aip-programs")
+    def aip_programs():
+        s = get_store(app)
+        items = s.list_aip_programs()
+        return render_template(
+            "aip_programs.html",
+            app_name=APP_NAME,
+            items=items,
+        )
 
     @app.get("/api/dashboard/summary")
     def api_dashboard_summary():

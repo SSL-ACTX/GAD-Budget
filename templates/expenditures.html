@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% set title = "Expenditures • " ~ app_name %}
+
+{% macro money(v) -%}
+  {{ "{:,.2f}".format(v or 0) }}
+{%- endmacro %}
+
+{% block content %}
+
+<style>
+  .exp-wrapper {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+    overflow: hidden;
+  }
+  .exp-header {
+    background: linear-gradient(135deg, #375623 0%, #538135 100%);
+    padding: 22px 28px;
+    color: #fff;
+  }
+  .exp-header h2 {
+    font-weight: 800;
+    font-size: 1.2rem;
+    margin-bottom: 2px;
+  }
+  .exp-header .sub {
+    font-size: 0.8rem;
+    opacity: 0.8;
+  }
+
+  .exp-scroll { overflow-x: auto; }
+
+  .exp-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+    min-width: 900px;
+  }
+  .exp-table thead th {
+    background: #f0f4e8;
+    color: #375623;
+    font-weight: 700;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 12px 14px;
+    border-bottom: 2px solid #c5d8a0;
+    white-space: nowrap;
+  }
+  .exp-table tbody tr {
+    border-bottom: 1px solid #f1f5f0;
+    transition: background 0.15s;
+  }
+  .exp-table tbody tr:hover {
+    background: #f6faf0;
+  }
+  .exp-table tbody td {
+    padding: 10px 14px;
+    color: #334155;
+    vertical-align: middle;
+  }
+  .exp-table .td-no {
+    text-align: center;
+    font-weight: 700;
+    color: #538135;
+    width: 50px;
+  }
+  .exp-table .td-num {
+    text-align: right;
+    font-family: 'Courier New', monospace;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .exp-table .td-code {
+    font-family: 'Courier New', monospace;
+    font-size: 0.76rem;
+    color: #64748b;
+    white-space: nowrap;
+  }
+  .exp-table .td-name {
+    max-width: 340px;
+  }
+  .cell-wrap-exp {
+    max-width: 340px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: block;
+  }
+  .cell-wrap-exp:hover {
+    white-space: normal;
+    overflow: visible;
+    background: #fffbe6;
+    position: relative;
+    z-index: 10;
+    border-radius: 4px;
+    padding: 2px 4px;
+  }
+  .td-negative { color: #dc2626 !important; font-weight: 700; }
+
+  /* Totals row */
+  .exp-table tfoot td {
+    padding: 14px;
+    font-weight: 800;
+    background: #f0f4e8;
+    border-top: 2px solid #c5d8a0;
+    color: #375623;
+  }
+
+  /* Summary pills */
+  .exp-pills {
+    display: flex;
+    gap: 12px;
+    padding: 16px 28px;
+    border-bottom: 1px solid #e8ecf0;
+    flex-wrap: wrap;
+  }
+  .exp-pill {
+    background: #f0f4e8;
+    color: #375623;
+    font-weight: 700;
+    font-size: 0.75rem;
+    padding: 6px 14px;
+    border-radius: 20px;
+  }
+
+  @media (max-width: 768px) {
+    .exp-table { font-size: 0.75rem; }
+  }
+</style>
+
+<!-- Page Header -->
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+  <div>
+    <h2 class="h4 mb-0 fw-bold" style="color:#1a2235;">💳 Expenditures by Account (LBP2)</h2>
+    <div class="text-muted" style="font-size:.82rem;">Object of Expenditure — Account-level Budget & Obligations</div>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('dashboard') }}">← Dashboard</a>
+    <a class="btn btn-outline-primary btn-sm" href="{{ url_for('summary') }}">Summary</a>
+  </div>
+</div>
+
+<div class="exp-wrapper">
+  <div class="exp-header">
+    <h2>📋 LBP2 — Object of Expenditure Accounts</h2>
+    <div class="sub">Allotted budget, earnmarked, obligated, and balance per account code</div>
+  </div>
+
+  <div class="exp-pills">
+    <span class="exp-pill">{{ items|length }} account(s)</span>
+    {% set total_allotted = items|sum(attribute='allotted_budget') %}
+    {% set total_expenses = items|sum(attribute='expenses_total') %}
+    {% set total_balance = items|sum(attribute='balance_budget') %}
+    <span class="exp-pill">Allotted: ₱ {{ money(total_allotted) }}</span>
+    <span class="exp-pill">Expenses: ₱ {{ money(total_expenses) }}</span>
+    <span class="exp-pill">Balance: ₱ {{ money(total_balance) }}</span>
+  </div>
+
+  <div class="exp-scroll">
+    <table class="exp-table">
+      <thead>
+        <tr>
+          <th>No.</th>
+          <th>Object of Expenditure</th>
+          <th>Account Code</th>
+          <th class="text-end">Allotted Budget</th>
+          <th class="text-end">Earnmarked</th>
+          <th class="text-end">Actual Obligated</th>
+          <th class="text-end">Expenses (E+O)</th>
+          <th class="text-end">Balance</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if items %}
+          {% for r in items %}
+          <tr>
+            <td class="td-no">{{ r["no"] or loop.index }}</td>
+            <td class="td-name"><span class="cell-wrap-exp" title="{{ r['object_name'] }}">{{ r["object_name"] }}</span></td>
+            <td class="td-code">{{ r["account_code"] or "—" }}</td>
+            <td class="td-num">₱ {{ money(r["allotted_budget"]) }}</td>
+            <td class="td-num">₱ {{ money(r["earnmarked"]) }}</td>
+            <td class="td-num" style="color:#833c00; font-weight:600;">₱ {{ money(r["actual_obligated"]) }}</td>
+            <td class="td-num" style="color:#1f3864; font-weight:700;">₱ {{ money(r["expenses_total"]) }}</td>
+            <td class="td-num {% if (r['balance_budget'] or 0) < 0 %}td-negative{% else %}{% endif %}" style="{% if (r['balance_budget'] or 0) >= 0 %}color:#16a34a; font-weight:600;{% endif %}">₱ {{ money(r["balance_budget"]) }}</td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="8" class="text-center text-muted py-5">No expenditure records found.</td>
+          </tr>
+        {% endif %}
+      </tbody>
+      {% if items %}
+      <tfoot>
+        <tr>
+          <td colspan="3" class="text-end">TOTALS</td>
+          <td class="td-num">₱ {{ money(total_allotted) }}</td>
+          <td class="td-num">₱ {{ money(items|sum(attribute='earnmarked')) }}</td>
+          <td class="td-num">₱ {{ money(items|sum(attribute='actual_obligated')) }}</td>
+          <td class="td-num">₱ {{ money(total_expenses) }}</td>
+          <td class="td-num">₱ {{ money(total_balance) }}</td>
+        </tr>
+      </tfoot>
+      {% endif %}
+    </table>
+  </div>
+</div>
+
+{% endblock %}

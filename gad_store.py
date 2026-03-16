@@ -52,6 +52,16 @@ class BudgetStore:
     def dashboard(self) -> dict[str, Any]:
         raise NotImplementedError
 
+    # --- NEW ---
+    def get_summary(self) -> dict[str, Any]:
+        raise NotImplementedError
+
+    def list_expenditures(self) -> list[BudgetRow]:
+        raise NotImplementedError
+
+    def list_aip_programs(self) -> list[BudgetRow]:
+        raise NotImplementedError
+
 
 class SQLiteStore(BudgetStore):
     def __init__(self, db_path: str):
@@ -93,8 +103,83 @@ class SQLiteStore(BudgetStore):
                 )
                 """
             )
+
+            db.execute(
+                """
+                CREATE TABLE IF NOT EXISTS office_summary (
+                  id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+                  office                TEXT NOT NULL,
+                  budget_threshold      REAL NOT NULL DEFAULT 0,
+                  obligated             REAL NOT NULL DEFAULT 0,
+                  earnmarked            REAL NOT NULL DEFAULT 0,
+                  expenses              REAL NOT NULL DEFAULT 0,
+                  balance               REAL NOT NULL DEFAULT 0,
+                  utilization_pct       REAL NOT NULL DEFAULT 0
+                )
+                """
+            )
+
+            db.execute(
+                """
+                CREATE TABLE IF NOT EXISTS expenditures (
+                  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                  no              TEXT,
+                  object_name     TEXT NOT NULL,
+                  account_code    TEXT,
+                  allotted_budget REAL NOT NULL DEFAULT 0,
+                  earnmarked      REAL NOT NULL DEFAULT 0,
+                  actual_obligated REAL NOT NULL DEFAULT 0,
+                  expenses_total  REAL NOT NULL DEFAULT 0,
+                  balance_budget  REAL NOT NULL DEFAULT 0
+                )
+                """
+            )
+
+            db.execute(
+                """
+                CREATE TABLE IF NOT EXISTS aip_programs (
+                  id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+                  ref_code           TEXT,
+                  office             TEXT,
+                  description        TEXT NOT NULL,
+                  ps_budget          REAL NOT NULL DEFAULT 0,
+                  mooe_budget        REAL NOT NULL DEFAULT 0,
+                  co_budget          REAL NOT NULL DEFAULT 0,
+                  total_budget       REAL NOT NULL DEFAULT 0,
+                  earnmarked         REAL NOT NULL DEFAULT 0,
+                  obligated          REAL NOT NULL DEFAULT 0,
+                  expenses           REAL NOT NULL DEFAULT 0,
+                  balance            REAL NOT NULL DEFAULT 0,
+                  status             TEXT,
+                  utilization_pct    REAL NOT NULL DEFAULT 0,
+                  quarterly_schedule TEXT,
+                  is_header          INTEGER NOT NULL DEFAULT 0
+                )
+                """
+            )
+
+            db.execute(
+                """
+                CREATE TABLE IF NOT EXISTS grand_totals (
+                  id                       INTEGER PRIMARY KEY AUTOINCREMENT,
+                  total_gad_threshold      REAL NOT NULL DEFAULT 0,
+                  total_obligated          REAL NOT NULL DEFAULT 0,
+                  total_earnmarked         REAL NOT NULL DEFAULT 0,
+                  total_expenses           REAL NOT NULL DEFAULT 0,
+                  utilization_pct          REAL NOT NULL DEFAULT 0,
+                  ps_expenses              REAL NOT NULL DEFAULT 0,
+                  ps_balance               REAL NOT NULL DEFAULT 0,
+                  mooe_expenses            REAL NOT NULL DEFAULT 0,
+                  mooe_balance             REAL NOT NULL DEFAULT 0,
+                  co_expenses              REAL NOT NULL DEFAULT 0,
+                  co_balance               REAL NOT NULL DEFAULT 0
+                )
+                """
+            )
+
             db.commit()
 
+            # Only seed budgets if empty (other tables seeded via migrate)
             cur = db.execute("SELECT COUNT(*) AS c FROM budgets")
             count = cur.fetchone()["c"]
             if count:
@@ -150,58 +235,6 @@ class SQLiteStore(BudgetStore):
                     0.00, 24000.00, "REYNAN PARADERO", None, "101-26-01-109",
                     "Cash Advance", 246750.00, None, now,
                 ),
-                (
-                    "8", "1/20/2026", "MGADO", "Completed",
-                    "MEALS",
-                    "PROTECT, RESPOND, EMPOWER: RA11313 (SAFE SPACES ACT) & VAWC AWARENESS",
-                    "February 10, 2026",
-                    "1000-001-3-9-99-001-003-004-011", 600000.00,
-                    "Other Related Trainings",
-                    "MOOE-Other Maintenance and Operating Expenses", "5-02-99-990",
-                    0.00, 83700.00, "MOST HOLY ROSARY MULTI-PURPOSE COOPERATIVE", None, "101-26-02-385",
-                    "Food", 139318.00, "FROM BUDGET (ELLA)", now,
-                ),
-                (
-                    "13", "1/20/2026", "MGADO", "Completed",
-                    "MEALS",
-                    "SAFE RIDES, SAFE WOMEN: ORIENTATION ON THE SAFE SPACES ACT AND VIOLENCE AGAINST WOMEN FOR TODA DRIVERS",
-                    "February 12, 2026",
-                    "1000-001-3-9-99-001-003-004-011", 600000.00,
-                    "Other Related Trainings",
-                    "MOOE-Other Maintenance and Operating Expenses", "5-02-99-990",
-                    0.00, 67200.00, "PIONEER BY JAY-EL CATERING SERVICES", "-", "101-26-02-508",
-                    "Food", 139318.00, "FROM BUDGET (ELLA)", now,
-                ),
-                (
-                    "17", "1/13/2026", "MGADO", "Completed",
-                    "JOB ORDER SALARY (TECH & LIVELIHOOD)", "-",
-                    "JANUARY 1 - 10, 2026",
-                    "1000-001-3-9-99-001-001-003-001", 1604373.56,
-                    "Provision of JO for Women's Crisis and Therapy Facility",
-                    "MOOE-Other Maintenance and Operating Expenses", "5-02-99-990",
-                    0.00, 6500.00, "JENIFER EVANGELISTA", None, "101-26-01-48",
-                    "SALARY", 1373851.14, "FROM BUDGET (ELLA) (TALLY)", now,
-                ),
-                (
-                    "18", "1/13/2026", "MGADO", "Completed",
-                    "JOB ORDER SALARY (GAD)", "-",
-                    "JANUARY 1 - 10, 2026",
-                    "1000-001-3-9-99-001-001-002-001", 1154350.14,
-                    "Provision of Salary and incentives for Job Order Personnel",
-                    "MOOE-Other Maintenance and Operating Expenses", "5-02-99-990",
-                    0.00, 10082.00, "PHILIPPINE VETERANS BANK", None, "101-26-01-55",
-                    "SALARY", 1049833.04, "FROM BUDGET (ELLA) (TALLY)", now,
-                ),
-                (
-                    "19", "1/14/2026", "MSWDO", "Completed",
-                    "JOB ORDER SALARY (HOUSEPARENT) (MSWDO)", "-",
-                    "JANUARY 1 - 10, 2026",
-                    "1000-001-3-9-99-001-001-004-001", 1296000.00,
-                    "Provision of JO for Bahay Aruga",
-                    "MOOE-Other Maintenance and Operating Expenses", "5-02-99-990",
-                    0.00, 34469.22, "PHILIPPINE VETERANS BANK", None, "101-26-01-56",
-                    "SALARY", 959566.78, "FROM BUDGET (ELLA) (TALLY)", now,
-                ),
             ]
             db.executemany(
                 """
@@ -220,6 +253,10 @@ class SQLiteStore(BudgetStore):
                 seed,
             )
             db.commit()
+
+    # ─────────────────────────────────────
+    # MONITORING (budgets) — existing
+    # ─────────────────────────────────────
 
     def list_items(self, *, filters: dict[str, str]) -> list[BudgetRow]:
         office = (filters.get("office") or "").strip()
@@ -396,6 +433,64 @@ class SQLiteStore(BudgetStore):
             "by_category": [dict(r) for r in by_category],
             "recent": [dict(r) for r in recent],
         }
+
+    # ─────────────────────────────────────
+    # SUMMARY — office-level + grand totals
+    # ─────────────────────────────────────
+
+    def get_summary(self) -> dict[str, Any]:
+        with self._connect() as db:
+            # grand totals
+            gt_row = db.execute("SELECT * FROM grand_totals LIMIT 1").fetchone()
+            grand = dict(gt_row) if gt_row else {
+                "total_gad_threshold": 0, "total_obligated": 0,
+                "total_earnmarked": 0, "total_expenses": 0,
+                "utilization_pct": 0,
+                "ps_expenses": 0, "ps_balance": 0,
+                "mooe_expenses": 0, "mooe_balance": 0,
+                "co_expenses": 0, "co_balance": 0,
+            }
+
+            # per-office
+            offices = db.execute(
+                """
+                SELECT * FROM office_summary
+                ORDER BY budget_threshold DESC
+                """
+            ).fetchall()
+
+        return {
+            "grand": grand,
+            "offices": [dict(r) for r in offices],
+        }
+
+    # ─────────────────────────────────────
+    # EXPENDITURES (LBP2-Accounts)
+    # ─────────────────────────────────────
+
+    def list_expenditures(self) -> list[BudgetRow]:
+        with self._connect() as db:
+            rows = db.execute(
+                """
+                SELECT * FROM expenditures
+                ORDER BY id ASC
+                """
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    # ─────────────────────────────────────
+    # AIP PROGRAMS (LBP4-AIP-Obligated)
+    # ─────────────────────────────────────
+
+    def list_aip_programs(self) -> list[BudgetRow]:
+        with self._connect() as db:
+            rows = db.execute(
+                """
+                SELECT * FROM aip_programs
+                ORDER BY id ASC
+                """
+            ).fetchall()
+        return [dict(r) for r in rows]
 
 
 def make_store(sqlite_db_path: str) -> BudgetStore:
