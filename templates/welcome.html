@@ -2,68 +2,94 @@
 {% set title = "Welcome • " ~ app_name %}
 
 {% block content %}
-  <div class="p-4 p-md-5 bg-white rounded-4 shadow-sm border">
-    <div class="row align-items-center g-4">
-      <div class="col-lg-7">
-        <h1 class="display-6 fw-semibold mb-2">Welcome to {{ app_name }}</h1>
-        <p class="text-muted mb-4">
-          Track, summarize, and review your Gender and Development (GAD) budget items in one place.
-          Use the dashboard for quick insights and the tables page for detailed records.
+  <section class="welcome-hero shadow-sm mb-5">
+    <div class="row g-5 align-items-center position-relative">
+      <div class="col-xl-7">
+        <div class="badge bg-soft-primary text-primary fw-bold mb-3 px-3 py-2">
+          <i class="bi bi-shield-check me-2"></i>Official GAD Portal
+        </div>
+        <h1 class="welcome-title">
+          Empowering Progress Through <span class="text-primary">Gender Equality.</span>
+        </h1>
+        <p class="welcome-text mb-5">
+          A comprehensive workspace to plan, monitor, and track Gender and Development budgets. 
+          Gain real-time insights into allocations, obligations, and program impacts.
         </p>
-        <div class="d-flex flex-wrap gap-2">
-          <a class="btn btn-primary btn-lg" href="{{ url_for('dashboard') }}">Go to Dashboard</a>
-          <a class="btn btn-outline-primary btn-lg" href="{{ url_for('tables') }}">Manage Tables</a>
+        <div class="d-flex flex-wrap gap-3">
+          <a class="btn btn-primary btn-lg d-flex align-items-center gap-2" href="{{ url_for('dashboard') }}">
+            <i class="bi bi-speedometer2"></i> Launch Dashboard
+          </a>
+          <a class="btn btn-outline-secondary btn-lg d-flex align-items-center gap-2" href="{{ url_for('tables') }}">
+            <i class="bi bi-table"></i> View Data Tables
+          </a>
         </div>
       </div>
-      <div class="col-lg-5">
-        <div class="card border-0 bg-light-subtle rounded-4">
-          <div class="card-body p-4">
-            <div class="d-flex align-items-center justify-content-between mb-3">
-              <div class="badge text-bg-primary rounded-pill">Quick guide</div>
+      <div class="col-xl-5">
+        <div class="welcome-panel p-4">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="h5 mb-0 fw-bold">System Snapshot</h3>
+            <span class="badge bg-light text-dark border font-monospace small">v1.2.0</span>
+          </div>
+          <div class="mb-4">
+            <div class="d-flex align-items-start gap-3 mb-3">
+              <div class="bg-soft-primary rounded-circle p-2">
+                <i class="bi bi-pie-chart-fill text-primary"></i>
+              </div>
+              <div>
+                <div class="fw-bold small">Visual Analytics</div>
+                <div class="text-muted extra-small">Interactive charts and real-time budget metrics.</div>
+              </div>
             </div>
-            <ul class="list-unstyled mb-0">
-              <li class="mb-2">
-                <span class="fw-semibold">Dashboard:</span>
-                totals, utilization, and category breakdown.
-              </li>
-              <li class="mb-2">
-                <span class="fw-semibold">Tables:</span>
-                add, edit, delete, and filter budget entries.
-              </li>
-              <li class="mb-0">
-                <span class="fw-semibold">Data:</span>
-                stored locally in SQLite, with sample seed data on first run.
-              </li>
-            </ul>
+            <div class="d-flex align-items-start gap-3 mb-3">
+              <div class="bg-soft-primary rounded-circle p-2">
+                <i class="bi bi-file-earmark-spreadsheet-fill text-primary"></i>
+              </div>
+              <div>
+                <div class="fw-bold small">Spreadsheet Sync</div>
+                <div class="text-muted extra-small">Aligned with your official GAD monitoring sheets.</div>
+              </div>
+            </div>
+            <div class="d-flex align-items-start gap-3">
+              <div class="bg-soft-primary rounded-circle p-2">
+                <i class="bi bi-database-fill-check text-primary"></i>
+              </div>
+              <div>
+                <div class="fw-bold small">Local Data Store</div>
+                <div class="text-muted extra-small">Securely stored in <span class="font-monospace text-dark">gad_budget.db</span></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
+  </section>
 
-  <div class="row g-3 mt-3">
+  <div class="row g-4 mb-5">
     <div class="col-md-4">
-      <div class="card h-100 shadow-sm">
-        <div class="card-body">
-          <div class="fw-semibold mb-1">Budget Transparency</div>
-          <div class="text-muted small">See allocations vs. obligations and disbursements at a glance.</div>
-        </div>
+      <div class="welcome-grid-item h-100">
+        <div class="welcome-grid-label mb-3">Core Feature</div>
+        <div class="welcome-grid-title h4">Budget vs Utilization</div>
+        <p class="welcome-grid-text">
+          Instantly compare allocated funds against actual obligations. Monitor remaining balances with precision to ensure full GAD compliance.
+        </p>
       </div>
     </div>
     <div class="col-md-4">
-      <div class="card h-100 shadow-sm">
-        <div class="card-body">
-          <div class="fw-semibold mb-1">Monitoring & Reporting</div>
-          <div class="text-muted small">Keep records organized for audits, reviews, and reporting cycles.</div>
-        </div>
+      <div class="welcome-grid-item h-100">
+        <div class="welcome-grid-label mb-3">Data Integrity</div>
+        <div class="welcome-grid-title h4">Smart Tables</div>
+        <p class="welcome-grid-text">
+          Our tables mirror your official spreadsheets, making data entry intuitive and validation seamless for administrators.
+        </p>
       </div>
     </div>
     <div class="col-md-4">
-      <div class="card h-100 shadow-sm">
-        <div class="card-body">
-          <div class="fw-semibold mb-1">Simple Workflow</div>
-          <div class="text-muted small">Add items quickly, then refine details as implementation progresses.</div>
-        </div>
+      <div class="welcome-grid-item h-100">
+        <div class="welcome-grid-label mb-3">Accessibility</div>
+        <div class="welcome-grid-title h4">Unified Reporting</div>
+        <p class="welcome-grid-text">
+          Generate comprehensive summaries and reports at the click of a button. Designed for transparency and accountability.
+        </p>
       </div>
     </div>
   </div>
