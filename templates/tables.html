@@ -32,6 +32,11 @@
     <button class="btn btn-primary d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#addModal">
       <i class="bi bi-plus-lg"></i> Add record
     </button>
+    <form method="post" action="{{ url_for('sync_data') }}" style="display:inline;">
+      <button class="btn btn-success d-flex align-items-center gap-2" type="submit">
+        <i class="bi bi-arrow-repeat"></i> Sync with Google Sheets
+      </button>
+    </form>
   </div>
 </div>
 

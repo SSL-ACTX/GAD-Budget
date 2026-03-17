@@ -14,7 +14,9 @@ def list_sheets(filename):
                     print("Sheets in the workbook:")
                     for sheet in sheets:
                         name = sheet.get("name")
-                        print(f"- {name}")
+                        rId = sheet.get("{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id")
+                        sheetId = sheet.get("sheetId")
+                        print(f"- {name} (rId: {rId}, sheetId: {sheetId})")
                 else:
                     print("Could not find sheets in workbook.xml")
     except Exception as e:

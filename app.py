@@ -5,6 +5,7 @@ from decimal import Decimal, InvalidOperation
 from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
 
 from gad_store import BudgetStore, make_store
+from sync_spreadsheet import SpreadsheetSync
 
 
 APP_NAME = "GAD Budget Monitoring"
@@ -107,6 +108,18 @@ def create_app() -> Flask:
         s = get_store(app)
         s.delete_item(item_id)
         flash("Record deleted.", "success")
+        return redirect(url_for("tables"))
+
+    @app.post("/sync")
+    def sync_data():
+        excel_path = os.path.join(app.root_path, "GAD BUDGET MONITORING 2026.xlsx")
+        # In a real app, you might want to fetch from a URL if configured
+        sync = SpreadsheetSync(app.config["DATABASE"], excel_path=excel_path)
+        ok, msg = sync.sync()
+        if ok:
+            flash(msg, "success")
+        else:
+            flash(msg, "danger")
         return redirect(url_for("tables"))
 
     # ──────────────────────────────────
