@@ -65,8 +65,26 @@
   >AIP Programs</a>
 >
             </nav>
-            <div class="gad-nav-note small text-white-50 text-md-end">
-              GAD Budget Monitoring System &mdash; Internal use
+            <div class="d-flex align-items-center gap-3">
+              <!-- Google Sheets full-sync button -->
+              <form method="post" action="{{ url_for('sheets_sync') }}"
+                    onsubmit="this.querySelector('button').disabled=true;
+                              this.querySelector('button').innerHTML='<span class=\'spinner-border spinner-border-sm me-1\'></span>Syncing…';">
+                <button type="submit"
+                        class="btn btn-sm btn-success d-flex align-items-center gap-1"
+                        title="Pull all data from Google Sheets and push local changes back">
+                  <i class="bi bi-arrow-repeat"></i> Sync with Sheets
+                </button>
+              </form>
+              <a href="https://docs.google.com/spreadsheets/d/1i5lppsscqkwMzUo1heUtPBxCiJmvFv6zD1SO6KY0HhA/edit"
+                 target="_blank" rel="noopener"
+                 class="btn btn-sm btn-outline-light d-flex align-items-center gap-1"
+                 title="Open Google Spreadsheet">
+                <i class="bi bi-table"></i> Open Spreadsheet
+              </a>
+              <div class="gad-nav-note small text-white-50 text-md-end">
+                GAD Budget Monitoring System &mdash; Internal use
+              </div>
             </div>
           </div>
         </div>
@@ -94,6 +112,11 @@
         <div class="text-muted small">
           Local data store:
           <span class="font-monospace">gad_budget.db</span>
+          &nbsp;·&nbsp;
+          <a href="https://docs.google.com/spreadsheets/d/1i5lppsscqkwMzUo1heUtPBxCiJmvFv6zD1SO6KY0HhA/edit"
+             target="_blank" rel="noopener" class="text-muted">
+            <i class="bi bi-table me-1"></i>Google Sheets
+          </a>
         </div>
         <div class="text-muted small">
           {{ app_name }} • Flask &amp; Bootstrap

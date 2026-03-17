@@ -5,10 +5,15 @@ from decimal import Decimal, InvalidOperation
 from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
 
 from gad_store import BudgetStore, make_store
+from sheets_sync import SheetsSync
 
 
 APP_NAME = "GAD Budget Monitoring"
 DB_FILENAME = "gad_budget.db"
+
+# Path to your Google service-account credentials JSON.
+# Override with the GOOGLE_CREDENTIALS_JSON environment variable.
+CREDENTIALS_FILE = os.environ.get("GOOGLE_CREDENTIALS_JSON", "credentials.json")
 
 
 def create_app() -> Flask:
@@ -18,6 +23,9 @@ def create_app() -> Flask:
 
     store = make_store(app.config["DATABASE"])
     app.extensions["budget_store"] = store
+
+    # Google Sheets sync helper (credentials loaded lazily on first use)
+    app.extensions["sheets_sync"] = SheetsSync(CREDENTIALS_FILE)
 
     @app.get("/")
     def welcome():
@@ -70,7 +78,15 @@ def create_app() -> Flask:
             return redirect(url_for("tables"))
 
         s = get_store(app)
-        s.add_item(data)
+        new_id = s.add_item(data)
+
+        # Push new row to Google Sheets (non-blocking: warn on failure)
+        sync = get_sync(app)
+        if sync and new_id:
+            try:
+                sync.push_budget_row(app.config["DATABASE"], new_id)
+            except Exception as exc:
+                flash(f"Record saved locally but Sheets sync failed: {exc}", "warning")
 
         flash("Record added successfully.", "success")
         return redirect(url_for("tables"))
@@ -99,15 +115,67 @@ def create_app() -> Flask:
 
         s.update_item(item_id, data)
 
+        # Push updated row to Google Sheets
+        sync = get_sync(app)
+        if sync:
+            try:
+                sync.push_budget_row(app.config["DATABASE"], item_id)
+            except Exception as exc:
+                flash(f"Record saved locally but Sheets sync failed: {exc}", "warning")
+
         flash("Record updated successfully.", "success")
         return redirect(url_for("tables"))
 
     @app.post("/tables/<int:item_id>/delete")
     def delete_budget(item_id: int):
         s = get_store(app)
+        row = s.get_item(item_id)
+        obl_no = (row or {}).get("obligation_number", "")
         s.delete_item(item_id)
+
+        # Remove row from Google Sheets
+        sync = get_sync(app)
+        if sync and obl_no:
+            try:
+                sync.delete_budget_row(app.config["DATABASE"], obl_no)
+            except Exception as exc:
+                flash(f"Record deleted locally but Sheets sync failed: {exc}", "warning")
+
         flash("Record deleted.", "success")
         return redirect(url_for("tables"))
+
+    # ──────────────────────────────────
+    # Google Sheets full sync
+    # ──────────────────────────────────
+    @app.post("/sync")
+    def sheets_sync():
+        sync = get_sync(app)
+        if sync is None:
+            flash("Google Sheets sync is not configured (credentials.json missing).", "warning")
+            return redirect(request.referrer or url_for("dashboard"))
+        try:
+            result = sync.full_sync(app.config["DATABASE"])
+            if result["ok"]:
+                tabs = result.get("tabs", {})
+                mon  = tabs.get("monitoring", {})
+                summ = tabs.get("summary", {})
+                exp  = tabs.get("expenditures", {})
+                aip  = tabs.get("aip_programs", {})
+                flash(
+                    f"Sync complete — "
+                    f"Monitoring: {mon.get('pulled',0)} pulled / {mon.get('pushed',0)} pushed | "
+                    f"Summary: {summ.get('offices',0)} offices | "
+                    f"Expenditures: {exp.get('rows',0)} rows | "
+                    f"AIP Programs: {aip.get('rows',0)} rows",
+                    "success",
+                )
+            else:
+                flash(f"Sync encountered an error: {result.get('error')}", "danger")
+        except FileNotFoundError as exc:
+            flash(str(exc), "danger")
+        except Exception as exc:
+            flash(f"Sync failed: {exc}", "danger")
+        return redirect(request.referrer or url_for("dashboard"))
 
     # ──────────────────────────────────
     # NEW: Summary page
@@ -165,6 +233,17 @@ def create_app() -> Flask:
 
 def get_store(app: Flask) -> BudgetStore:
     return app.extensions["budget_store"]
+
+
+def get_sync(app: Flask) -> SheetsSync | None:
+    """Return the SheetsSync instance, or None if credentials file is absent."""
+    sync: SheetsSync = app.extensions.get("sheets_sync")
+    if sync is None:
+        return None
+    creds = os.environ.get("GOOGLE_CREDENTIALS_JSON", "credentials.json")
+    if not os.path.exists(creds):
+        return None
+    return sync
 
 
 def parse_budget_form(form) -> dict:

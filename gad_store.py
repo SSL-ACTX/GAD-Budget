@@ -40,7 +40,7 @@ class BudgetStore:
     def get_item(self, item_id: int) -> BudgetRow | None:
         raise NotImplementedError
 
-    def add_item(self, row: BudgetRow) -> None:
+    def add_item(self, row: BudgetRow) -> int:
         raise NotImplementedError
 
     def update_item(self, item_id: int, row: BudgetRow) -> None:
@@ -315,9 +315,9 @@ class SQLiteStore(BudgetStore):
             r = cur.fetchone()
             return dict(r) if r else None
 
-    def add_item(self, row: BudgetRow) -> None:
+    def add_item(self, row: BudgetRow) -> int:
         with self._connect() as db:
-            db.execute(
+            cur = db.execute(
                 """
                 INSERT INTO budgets (
                   no, date, office, status, particulars,
@@ -350,6 +350,7 @@ class SQLiteStore(BudgetStore):
                 ],
             )
             db.commit()
+            return cur.lastrowid  # type: ignore[return-value]
 
     def update_item(self, item_id: int, row: BudgetRow) -> None:
         with self._connect() as db:
